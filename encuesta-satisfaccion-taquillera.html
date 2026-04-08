@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encuesta Taquilleras - Expreso Palmira</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        .pregunta-grupo { transition: all 0.3s ease; }
+        .pregunta-grupo:hover { transform: translateY(-2px); }
+        .opcion-calificacion { transition: all 0.3s ease; cursor: pointer; }
+        .opcion-calificacion:hover { transform: scale(1.05); }
+        .opcion-calificacion.seleccionada { transform: scale(1.1); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4); }
+        .seccion { border-left: 4px solid; transition: all 0.3s ease; }
+        .seccion:hover { border-left-width: 6px; }
+        .campo-obligatorio::after { content: " *"; color: #ef4444; }
+        .progreso { transition: width 0.5s ease-in-out; }
+        .campo-error { border-color: #ef4444 !important; }
+        .mensaje-error { color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem; }
+        .grupo-radio-error { border: 2px solid #ef4444 !important; }
+        .confirmacion-envio {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .opcion-si-no { transition: all 0.3s ease; cursor: pointer; }
+        .opcion-si-no:hover { transform: scale(1.05); }
+        .opcion-si-no.seleccionada { 
+            transform: scale(1.1); 
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+            border-color: #10b981 !important;
+            background-color: #f0fdf4 !important;
+        }
+        .fecha-automatica {
+            background-color: #f3f4f6;
+            cursor: not-allowed;
+        }
+        .campo-opcional label::after {
+            content: " (Opcional)";
+            color: #6b7280;
+            font-weight: normal;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-purple-50 to-pink-100 min-h-screen py-8 px-4">
+    <div class="max-w-4xl mx-auto">
+        
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 text-center border-l-4 border-purple-600">
+            <div class="flex items-center justify-center mb-4">
+                <div class="bg-purple-600 text-white p-3 rounded-full mr-4">
+                    <i class="fas fa-ticket-alt text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-800">EXPRESO PALMIRA</h1>
+                    <p class="text-gray-600 text-lg">Evaluación de Servicio - Taquillas</p>
+                </div>
+            </div>
+            <div id="statusConexion" class="bg-green-50 border border-green-200 rounded-lg p-3 inline-block">
+                <p class="text-green-700 text-sm">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Conectado a Google Sheets 📊
+                </p>
+            </div>
+            <div class="mt-3 text-sm text-gray-600">
+                <i class="fas fa-info-circle mr-1"></i>
+                Los campos marcados con <span class="text-red-500">*</span> son obligatorios
+            </div>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div class="bg-white rounded-2xl shadow-xl p-4 mb-8">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium text-gray-700">Progreso del formulario</span>
+                <span id="porcentajeProgreso" class="text-sm font-medium text-purple-600">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div id="barraProgreso" class="bg-purple-600 h-2.5 rounded-full progreso" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Formulario -->
+        <form id="formEncuesta" class="space-y-8">
+            
+            <!-- ========== INFORMACIÓN DE LA COMPRA ========== -->
+            <div class="seccion bg-white rounded-2xl shadow-xl p-8 border-l-4 border-purple-500">
+                <div class="flex items-center mb-6">
+                    <div class="bg-purple-600 text-white rounded-lg p-3 mr-4">
+                        <i class="fas fa-store text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">INFORMACIÓN DE LA COMPRA</h2>
+                        <p class="text-gray-600">Datos de la transacción - <span class="text-red-500">Los campos con * son obligatorios</span></p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-gray-700 font-bold mb-3 campo-obligatorio">
+                            Agencia
+                        </label>
+                        <select name="agencia" id="agencia" required class="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200">
+                            <option value="">Seleccione la agencia</option>
+                            <option value="Bogotá Norte">Bogotá Norte</option>
+                            <option value="Bogotá Sur">Bogotá Sur</option>
+                            <option value="Cali">Cali</option>
+                            <option value="Aeropuerto">Aeropuerto</option>
+                            <option value="Buga">Buga</option>
+                            <option value="Tuluá">Tuluá</option>
+                            <option value="Palmira Estación">Palmira Estación</option>
+                            <option value="Palmira Versalles">Palmira Versalles</option>
+                            <option value="Ibagué">Ibagué</option>
+                            <option value="Medellín">Medellín</option>
+                            <option value="Popayán">Popayán</option>
+                            <option value="Caicedonia">Caicedonia</option>
+                            <option value="Sevilla">Sevilla</option>
+                            <option value="Cartago">Cartago</option>
+                            <option value="Manizales">Manizales</option>
+                            <option value="Buenaventura">Buenaventura</option>
+                            <option value="Pereira">Pereira</option>
+                            <option value="Armenia">Armenia</option>
+                            <option value="Zarzal">Zarzal</option>
+                        </select>
+                        <div class="mensaje-error hidden" id="error-agencia"></div>
+                    </div>
+
+                    <div class="campo-opcional">
+                        <label class="block text-gray-700 font-bold mb-3">
+                            Auxiliar de Taquilla (Opcional)
+                        </label>
+                        <select name="auxiliar_taquilla" id="auxiliar_taquilla" class="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200" disabled>
+                            <option value="">Primero seleccione una agencia</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1"><i class="fas fa-info-circle mr-1"></i> Este campo es opcional</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 font-bold mb-3 campo-obligatorio">
+                            Fecha de Compra
+                        </label>
+                        <input type="date" name="fecha_compra" id="fecha_compra" required 
+                            class="w-full p-4 border-2 border-gray-200 rounded-xl fecha-automatica"
+                            readonly disabled>
+                        <div class="mensaje-error hidden" id="error-fecha_compra"></div>
+                        <p class="text-xs text-gray-500 mt-1"><i class="fas fa-calendar-alt mr-1"></i> Fecha automática del día actual</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 font-bold mb-3 campo-obligatorio">
+                            Número de Tiquete
+                        </label>
+                        <input type="text" name="numero_tiquete" required 
+                            class="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                            placeholder="Ej: TQ123456789" maxlength="20">
+                        <div class="mensaje-error hidden" id="error-numero_tiquete"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== EVALUACIÓN DEL SERVICIO ========== -->
+            <div class="seccion bg-white rounded-2xl shadow-xl p-8 border-l-4 border-pink-500">
+                <div class="flex items-center mb-6">
+                    <div class="bg-pink-600 text-white rounded-lg p-3 mr-4">
+                        <i class="fas fa-star text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">EVALUACIÓN DEL SERVICIO</h2>
+                        <p class="text-gray-600">Califique la atención recibida - <span class="text-red-500">Todas las preguntas son obligatorias</span></p>
+                    </div>
+                </div>
+
+                <div class="space-y-8">
+                    <!-- Pregunta 1 -->
+                    <div class="p-4 bg-gray-50 rounded-xl grupo-radio" id="grupo-atenta_cordial">
+                        <h3 class="font-semibold text-gray-800 mb-4 campo-obligatorio">1. La taquillera fue atenta y cordial durante la atención</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <label class="opcion-calificacion"><input type="radio" name="atenta_cordial" value="Excelente" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">⭐</div><span>Excelente</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="atenta_cordial" value="Bueno" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">👍</div><span>Bueno</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="atenta_cordial" value="Regular" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">😐</div><span>Regular</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="atenta_cordial" value="Malo" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">👎</div><span>Malo</span></div></label>
+                        </div>
+                    </div>
+
+                    <!-- Pregunta 2 -->
+                    <div class="p-4 bg-gray-50 rounded-xl grupo-radio" id="grupo-tiempo_espera">
+                        <h3 class="font-semibold text-gray-800 mb-4 campo-obligatorio">2. El tiempo de espera en la fila fue razonable</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md mx-auto">
+                            <label class="opcion-si-no"><input type="radio" name="tiempo_espera" value="Sí" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-6 text-center"><div class="text-4xl mb-3">✅</div><span class="text-xl font-bold">SÍ</span><p class="text-gray-500 text-sm mt-2">El tiempo fue adecuado</p></div></label>
+                            <label class="opcion-si-no"><input type="radio" name="tiempo_espera" value="No" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-6 text-center"><div class="text-4xl mb-3">❌</div><span class="text-xl font-bold">NO</span><p class="text-gray-500 text-sm mt-2">La espera fue larga</p></div></label>
+                        </div>
+                    </div>
+
+                    <!-- Pregunta 3 -->
+                    <div class="p-4 bg-gray-50 rounded-xl grupo-radio" id="grupo-alternativas_viaje">
+                        <h3 class="font-semibold text-gray-800 mb-4 campo-obligatorio">3. La taquillera ofreció alternativas de horarios y rutas disponibles</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <label class="opcion-calificacion"><input type="radio" name="alternativas_viaje" value="Excelente" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">⭐</div><span>Excelente</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="alternativas_viaje" value="Bueno" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">👍</div><span>Bueno</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="alternativas_viaje" value="Regular" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">😐</div><span>Regular</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="alternativas_viaje" value="Malo" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">👎</div><span>Malo</span></div></label>
+                        </div>
+                    </div>
+
+                    <!-- Pregunta 4 -->
+                    <div class="p-4 bg-gray-50 rounded-xl grupo-radio" id="grupo-informacion_politicas">
+                        <h3 class="font-semibold text-gray-800 mb-4 campo-obligatorio">4. La taquillera fue clara con la información del viaje y políticas</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md mx-auto">
+                            <label class="opcion-si-no"><input type="radio" name="informacion_politicas" value="Sí" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-6 text-center"><div class="text-4xl mb-3">✅</div><span class="text-xl font-bold">SÍ</span><p class="text-gray-500 text-sm mt-2">Información clara</p></div></label>
+                            <label class="opcion-si-no"><input type="radio" name="informacion_politicas" value="No" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-6 text-center"><div class="text-4xl mb-3">❌</div><span class="text-xl font-bold">NO</span><p class="text-gray-500 text-sm mt-2">Faltó información</p></div></label>
+                        </div>
+                    </div>
+
+                    <!-- Pregunta 5 -->
+                    <div class="p-4 bg-gray-50 rounded-xl grupo-radio" id="grupo-proceso_pago">
+                        <h3 class="font-semibold text-gray-800 mb-4 campo-obligatorio">5. El proceso de pago fue rápido y eficiente</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <label class="opcion-calificacion"><input type="radio" name="proceso_pago" value="Excelente" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">⭐</div><span>Excelente</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="proceso_pago" value="Bueno" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">👍</div><span>Bueno</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="proceso_pago" value="Regular" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">😐</div><span>Regular</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="proceso_pago" value="Malo" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">👎</div><span>Malo</span></div></label>
+                        </div>
+                    </div>
+
+                    <!-- Pregunta 6 -->
+                    <div class="p-4 bg-gray-50 rounded-xl grupo-radio" id="grupo-entrega_tiquete">
+                        <h3 class="font-semibold text-gray-800 mb-4 campo-obligatorio">6. La entrega del tiquete fue correcta y con toda la información</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md mx-auto">
+                            <label class="opcion-si-no"><input type="radio" name="entrega_tiquete" value="Sí" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-6 text-center"><div class="text-4xl mb-3">✅</div><span class="text-xl font-bold">SÍ</span><p class="text-gray-500 text-sm mt-2">Todo correcto</p></div></label>
+                            <label class="opcion-si-no"><input type="radio" name="entrega_tiquete" value="No" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-6 text-center"><div class="text-4xl mb-3">❌</div><span class="text-xl font-bold">NO</span><p class="text-gray-500 text-sm mt-2">Hubo errores</p></div></label>
+                        </div>
+                    </div>
+
+                    <!-- Pregunta 7 -->
+                    <div class="p-4 bg-gray-50 rounded-xl grupo-radio" id="grupo-resolucion_dudas">
+                        <h3 class="font-semibold text-gray-800 mb-4 campo-obligatorio">7. La taquillera resolvió sus dudas de manera clara y paciente</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <label class="opcion-calificacion"><input type="radio" name="resolucion_dudas" value="Excelente" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">⭐</div><span>Excelente</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="resolucion_dudas" value="Bueno" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">👍</div><span>Bueno</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="resolucion_dudas" value="Regular" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">😐</div><span>Regular</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="resolucion_dudas" value="Malo" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">👎</div><span>Malo</span></div></label>
+                        </div>
+                    </div>
+
+                    <!-- Pregunta 8 -->
+                    <div class="p-4 bg-gray-50 rounded-xl grupo-radio" id="grupo-presentacion_personal">
+                        <h3 class="font-semibold text-gray-800 mb-4 campo-obligatorio">8. La presentación personal de la taquillera fue profesional y adecuada</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <label class="opcion-calificacion"><input type="radio" name="presentacion_personal" value="Excelente" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">⭐</div><span>Excelente</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="presentacion_personal" value="Bueno" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">👍</div><span>Bueno</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="presentacion_personal" value="Regular" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">😐</div><span>Regular</span></div></label>
+                            <label class="opcion-calificacion"><input type="radio" name="presentacion_personal" value="Malo" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center"><div class="text-2xl mb-2">👎</div><span>Malo</span></div></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== CALIFICACIÓN GENERAL ========== -->
+            <div class="seccion bg-white rounded-2xl shadow-xl p-8 border-l-4 border-indigo-500">
+                <div class="flex items-center mb-6">
+                    <div class="bg-indigo-600 text-white rounded-lg p-3 mr-4">
+                        <span class="font-bold text-xl">9</span>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">CALIFICACIÓN GENERAL DEL SERVICIO</h2>
+                        <p class="text-gray-600">En general, ¿cómo calificaría la atención recibida? - <span class="text-red-500">Obligatorio</span></p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto grupo-radio" id="grupo-calificacion_general">
+                    <label class="opcion-calificacion"><input type="radio" name="calificacion_general" value="Excelente" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-6 text-center"><div class="text-3xl mb-3">⭐</div><span class="font-bold text-lg">Excelente</span></div></label>
+                    <label class="opcion-calificacion"><input type="radio" name="calificacion_general" value="Bueno" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-6 text-center"><div class="text-3xl mb-3">👍</div><span class="font-bold text-lg">Bueno</span></div></label>
+                    <label class="opcion-calificacion"><input type="radio" name="calificacion_general" value="Regular" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-6 text-center"><div class="text-3xl mb-3">😐</div><span class="font-bold text-lg">Regular</span></div></label>
+                    <label class="opcion-calificacion"><input type="radio" name="calificacion_general" value="Malo" class="hidden" required><div class="bg-white border-2 border-gray-200 rounded-xl p-6 text-center"><div class="text-3xl mb-3">👎</div><span class="font-bold text-lg">Malo</span></div></label>
+                </div>
+            </div>
+
+            <!-- ========== RECOMENDACIÓN ========== -->
+            <div class="seccion bg-white rounded-2xl shadow-xl p-8 border-l-4 border-green-500">
+                <div class="flex items-center mb-6">
+                    <div class="bg-green-600 text-white rounded-lg p-3 mr-4">
+                        <span class="font-bold text-xl">10</span>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">¿RECOMENDARÍA NUESTRO SERVICIO DE TAQUILLA?</h2>
+                        <p class="text-gray-600">¿Volvería a comprar en esta taquilla? - <span class="text-red-500">Obligatorio</span></p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md mx-auto grupo-radio" id="grupo-recomendaria">
+                    <label class="opcion-si-no cursor-pointer">
+                        <input type="radio" name="recomendaria" value="Sí" class="hidden" required>
+                        <div class="bg-white border-2 border-gray-200 rounded-xl p-6 text-center transition-all duration-300 hover:border-green-500">
+                            <div class="text-4xl mb-3">✅</div>
+                            <span class="text-xl font-bold">SÍ</span>
+                            <p class="text-gray-500 text-sm mt-2">Recomendaría el servicio</p>
+                        </div>
+                    </label>
+                    <label class="opcion-si-no cursor-pointer">
+                        <input type="radio" name="recomendaria" value="No" class="hidden" required>
+                        <div class="bg-white border-2 border-gray-200 rounded-xl p-6 text-center transition-all duration-300 hover:border-red-500">
+                            <div class="text-4xl mb-3">❌</div>
+                            <span class="text-xl font-bold">NO</span>
+                            <p class="text-gray-500 text-sm mt-2">No recomendaría el servicio</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- ========== COMENTARIOS ADICIONALES ========== -->
+            <div class="seccion bg-white rounded-2xl shadow-xl p-8 border-l-4 border-blue-500">
+                <div class="flex items-center mb-6">
+                    <div class="bg-blue-600 text-white rounded-lg p-3 mr-4">
+                        <span class="font-bold text-xl">11</span>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">COMENTARIOS ADICIONALES</h2>
+                        <p class="text-gray-600">(Opcional) - ¿Algo más que quiera comentar sobre la atención?</p>
+                    </div>
+                </div>
+                <textarea name="comentarios" rows="6" placeholder="Comparta sus comentarios, sugerencias, observaciones..." class="w-full p-6 border-2 border-gray-200 rounded-xl focus:border-blue-500 resize-none text-lg"></textarea>
+            </div>
+
+            <!-- Botón de Envío -->
+            <div class="text-center">
+                <button type="submit" class="bg-gradient-to-r from-purple-600 to-pink-700 hover:from-purple-700 hover:to-pink-800 text-white font-bold py-6 px-12 rounded-2xl text-xl shadow-2xl transition duration-300 transform hover:scale-105">
+                    <i class="fas fa-paper-plane mr-3"></i>ENVIAR EVALUACIÓN
+                </button>
+                <p class="text-gray-500 text-sm mt-3"><i class="fas fa-shield-alt mr-1"></i>Todos sus datos están protegidos y se guardarán en Google Sheets</p>
+            </div>
+        </form>
+
+        <!-- Modal de confirmación -->
+        <div id="confirmacionEnvio" class="confirmacion-envio hidden">
+            <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
+                <div class="text-center">
+                    <div class="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4"><i class="fas fa-question text-purple-600 text-2xl"></i></div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-2">¿Está seguro de enviar la evaluación?</h3>
+                    <p class="text-gray-600 mb-6">Una vez enviada, no podrá modificar sus respuestas.</p>
+                    <div class="flex space-x-4">
+                        <button id="cancelarEnvio" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-xl">Cancelar</button>
+                        <button id="confirmarEnvio" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl">Confirmar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultado -->
+        <div id="resultado" class="hidden bg-white rounded-2xl shadow-xl p-8 text-center">
+            <div class="bg-gradient-to-br from-green-400 to-emerald-600 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6"><i class="fas fa-check text-white text-4xl"></i></div>
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">¡EVALUACIÓN ENVIADA EXITOSAMENTE!</h2>
+            <p class="text-gray-600 text-xl mb-8">Gracias por evaluar nuestro servicio de taquilla</p>
+            <div class="bg-gray-50 rounded-2xl p-6 mb-8 text-left max-w-4xl mx-auto">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-200 pb-2"><i class="fas fa-clipboard-list mr-2 text-purple-500"></i>Resumen de su evaluación</h3>
+                <div id="resumen" class="space-y-4"></div>
+            </div>
+            <div id="estadoEnvio" class="rounded-xl p-4 mb-6"></div>
+            <button onclick="resetearFormulario()" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-8 rounded-xl text-lg"><i class="fas fa-redo mr-2"></i>ENVIAR OTRA EVALUACIÓN</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CONFIGURACIÓN ====================
+        // ⚠️ IMPORTANTE: Reemplaza con la URL de tu Google Apps Script
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzOnJpvpT6wfkz81PvX682QuGyhsEcM_DsAkioU3dCtDdFYL4iRASv6LsIpc7S40fwi/exec";
+        
+        let enviando = false;
+
+        // ==================== FUNCIÓN PARA FORMATEAR NOMBRES (Primera letra mayúscula) ====================
+        function formatearNombre(nombre) {
+            return nombre.split(' ').map(palabra => {
+                if (palabra.length === 0) return palabra;
+                return palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase();
+            }).join(' ');
+        }
+
+        // ==================== AUXILIARES POR AGENCIA (Nombres formateados) ====================
+        const auxiliaresPorAgencia = {
+            'Bogotá Norte': [
+                'Sandra Ocampo', 'Luz Mary Cuenca', 'Jairo Efrain Perez', 
+                'Alejandra Camacho', 'Paola Valderrama', 'Wbeimar Salinas', 'Leidy V. Rubiano'
+            ].map(formatearNombre),
+            'Bogotá Sur': [
+                'Lesni Tole', 'Laura Cuellar', 'Nicolas Alzate', 
+                'Liliana Daza', 'Jennifer Quintero'
+            ].map(formatearNombre),
+            'Cali': [
+                'Belkys Rivera', 'Cristhian Chilo', 'Diana Barrero', 'Darcy Agudelo',
+                'Francia Montenegro', 'Johana Sanchez', 'Jullie Ortega', 'Maria Viafara',
+                'Maritza Sánchez', 'Yuliana Muñoz', 'Yulieth Hoyones'
+            ].map(formatearNombre),
+            'Aeropuerto': [
+                'Jhan Garcia', 'Kelly Usnas'
+            ].map(formatearNombre),
+            'Buga': [
+                'Carolina Saldarriaga', 'Clemente Laguna', 'Mauricio Bedolla'
+            ].map(formatearNombre),
+            'Tuluá': [
+                'Luz Gutierrez', 'Jazmin Londoño', 'Sandra Naranjo', 
+                'Jenny Cabreda', 'Ruben Arce'
+            ].map(formatearNombre),
+            'Palmira Estación': [
+                'Elizabeth Bonilla', 'Karol Holguín', 'Carolina González', 
+                'Angelica Morales', 'Sandra Moya', 'Paula Paredes', 
+                'Donaldo López', 'Aldemar Duarte', 'Yineth Criollo'
+            ].map(formatearNombre),
+            'Palmira Versalles': [
+                'Elizabeth Bonilla', 'Karol Holguín', 'Carolina González', 
+                'Angelica Morales', 'Sandra Moya', 'Paula Paredes', 
+                'Donaldo López', 'Aldemar Duarte', 'Yineth Criollo'
+            ].map(formatearNombre),
+            'Ibagué': [
+                'Diana Diaz', 'Elvia Fonseca', 'Beatríz Moreno', 
+                'Antonio Ramirez', 'Zoraida Rincon'
+            ].map(formatearNombre),
+            'Medellín': [
+                'Jimena Valencia', 'Eliana Trujillo'
+            ].map(formatearNombre),
+            'Popayán': [
+                'Iner Jimez', 'Javier'
+            ].map(formatearNombre),
+            'Caicedonia': [
+                'Ángela Galeano', 'Gloria Carmona', 'Jhon Benavidez', 
+                'Tatiana Bermúdez', 'Luz Loaiza'
+            ].map(formatearNombre),
+            'Sevilla': [
+                'Luz Loaiza', 'Ángela Galeano'
+            ].map(formatearNombre),
+            'Cartago': [
+                'Lina Corrales'
+            ].map(formatearNombre),
+            'Manizales': [
+                'Angelica Betancurt', 'Mary Cardenas', 'Sonia Acevedo', 
+                'Lina Maya', 'Francinelly Cardona', 'Carlos Ramírez'
+            ].map(formatearNombre),
+            'Buenaventura': [
+                'Martin Angulo'
+            ].map(formatearNombre),
+            'Pereira': [
+                'Leily Bustos', 'Jessica Carmona', 'Elizabeth Montoya', 'Stefannia Muñoz',
+                'Valentina Ospina', 'Leidy Posada', 'Dora Quintero', 'Gloria Rivera',
+                'Laura Rivera', 'Claudia Toquica', 'Jeritza Vasquez', 'Yeraldin Velasquez', 'Diana Vinasco'
+            ].map(formatearNombre),
+            'Armenia': [
+                'Eliana Barreiro', 'Jhon Benavides', 'Tatiana Bermúdez', 
+                'Gloria Carmona', 'Claudia Morales', 'Gloria Sánchez', 
+                'Emerson Sinisterra', 'Leydi Torres', 'Leidy Tovar'
+            ].map(formatearNombre),
+            'Zarzal': [
+                'Luis Carlos', 'Mónica Giraldo', 'Juan Pablo', 'Daniela Cardona'
+            ].map(formatearNombre)
+        };
+
+        // ==================== FECHA AUTOMÁTICA ====================
+        function establecerFechaAutomatica() {
+            const hoy = new Date();
+            const año = hoy.getFullYear();
+            const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoy.getDate()).padStart(2, '0');
+            const fechaActual = `${año}-${mes}-${dia}`;
+            
+            const fechaInput = document.getElementById('fecha_compra');
+            fechaInput.value = fechaActual;
+            console.log('📅 Fecha automática establecida:', fechaActual);
+        }
+
+        // ==================== ACTUALIZAR AUXILIARES SEGÚN AGENCIA ====================
+        function actualizarAuxiliares() {
+            const agenciaSelect = document.getElementById('agencia');
+            const auxiliarSelect = document.getElementById('auxiliar_taquilla');
+            const agencia = agenciaSelect.value;
+            
+            console.log('Agencia seleccionada:', agencia);
+            
+            if (agencia && auxiliaresPorAgencia[agencia]) {
+                auxiliarSelect.disabled = false;
+                auxiliarSelect.innerHTML = '<option value="">Seleccione el auxiliar de taquilla (Opcional)</option>';
+                auxiliarSelect.innerHTML += '<option value="">--- Ninguno ---</option>';
+                auxiliaresPorAgencia[agencia].forEach(auxiliar => {
+                    const option = document.createElement('option');
+                    option.value = auxiliar;
+                    option.textContent = auxiliar;
+                    auxiliarSelect.appendChild(option);
+                });
+                console.log(`✅ Cargados ${auxiliaresPorAgencia[agencia].length} auxiliares para ${agencia}`);
+            } else if (agencia) {
+                auxiliarSelect.disabled = false;
+                auxiliarSelect.innerHTML = '<option value="">No hay auxiliares registrados para esta agencia</option>';
+                console.warn(`⚠️ No hay auxiliares registrados para: ${agencia}`);
+            } else {
+                auxiliarSelect.disabled = true;
+                auxiliarSelect.innerHTML = '<option value="">Primero seleccione una agencia</option>';
+            }
+        }
+
+        // ==================== BARRA DE PROGRESO ====================
+        function actualizarProgreso() {
+            const campos = document.querySelectorAll('input[required], select[required], textarea[required]');
+            const radios = document.querySelectorAll('input[type="radio"][required]');
+            let camposCompletados = 0;
+            
+            campos.forEach(campo => {
+                if (campo.type !== 'radio' && campo.value && campo.value.trim() !== '') {
+                    if (campo.id !== 'fecha_compra' || campo.value) {
+                        camposCompletados++;
+                    }
+                }
+            });
+            
+            const gruposRadio = {};
+            radios.forEach(radio => {
+                if (radio.checked) {
+                    gruposRadio[radio.name] = true;
+                }
+            });
+            camposCompletados += Object.keys(gruposRadio).length;
+            
+            // El campo auxiliar_taquilla es opcional, no cuenta para el progreso
+            const totalCampos = document.querySelectorAll('input[required]:not([type="radio"]), select[required]').length;
+            const totalRadios = new Set(Array.from(radios).map(r => r.name)).size;
+            const totalGeneral = totalCampos + totalRadios;
+            
+            const porcentaje = Math.round((camposCompletados / totalGeneral) * 100);
+            document.getElementById('barraProgreso').style.width = `${porcentaje}%`;
+            document.getElementById('porcentajeProgreso').textContent = `${porcentaje}%`;
+        }
+
+        // ==================== VALIDACIÓN COMPLETA ====================
+        function validarFormularioCompleto() {
+            let esValido = true;
+            
+            // Validar campos de texto/select (excepto auxiliar_taquilla que es opcional)
+            const camposTexto = document.querySelectorAll('input[required]:not([type="radio"]), select[required]');
+            camposTexto.forEach(campo => {
+                // Saltar validación del campo auxiliar_taquilla (es opcional)
+                if (campo.id === 'auxiliar_taquilla') return;
+                
+                if (!campo.value || campo.value.trim() === '') {
+                    esValido = false;
+                    campo.classList.add('campo-error');
+                } else {
+                    campo.classList.remove('campo-error');
+                }
+            });
+            
+            // Validar todos los grupos de radio
+            const gruposRadio = [
+                'atenta_cordial', 'tiempo_espera', 'alternativas_viaje', 
+                'informacion_politicas', 'proceso_pago', 'entrega_tiquete', 
+                'resolucion_dudas', 'presentacion_personal', 'calificacion_general', 'recomendaria'
+            ];
+            
+            gruposRadio.forEach(grupo => {
+                const seleccionado = document.querySelector(`input[name="${grupo}"]:checked`);
+                if (!seleccionado) {
+                    esValido = false;
+                    const grupoDiv = document.getElementById(`grupo-${grupo}`);
+                    if (grupoDiv) grupoDiv.classList.add('grupo-radio-error');
+                } else {
+                    const grupoDiv = document.getElementById(`grupo-${grupo}`);
+                    if (grupoDiv) grupoDiv.classList.remove('grupo-radio-error');
+                }
+            });
+            
+            return esValido;
+        }
+
+        // ==================== ENVÍO A GOOGLE SHEETS ====================
+        async function enviarAGSheets(datos) {
+            try {
+                const response = await fetch(GOOGLE_SHEETS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(datos)
+                });
+                console.log('✅ Datos enviados a Google Sheets:', datos);
+                return true;
+            } catch (error) {
+                console.error('❌ Error enviando a Google Sheets:', error);
+                return false;
+            }
+        }
+
+        // ==================== GUARDADO LOCAL ====================
+        function guardarLocalmente(datos) {
+            try {
+                const pendientes = JSON.parse(localStorage.getItem('encuestas_taquilla_pendientes') || '[]');
+                pendientes.push({ ...datos, timestampLocal: new Date().toISOString() });
+                localStorage.setItem('encuestas_taquilla_pendientes', JSON.stringify(pendientes));
+                console.log('💾 Datos guardados localmente');
+                return true;
+            } catch (error) {
+                console.error('Error guardando localmente:', error);
+                return false;
+            }
+        }
+
+        // ==================== MOSTRAR RESUMEN ====================
+        function mostrarResumen(datos) {
+            const resumenDiv = document.getElementById('resumen');
+            resumenDiv.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white rounded-lg p-4 border border-gray-200">
+                        <h4 class="font-bold text-purple-600 mb-2">📋 INFORMACIÓN DE COMPRA</h4>
+                        <p><strong>Agencia:</strong> ${datos.agencia}</p>
+                        <p><strong>Auxiliar:</strong> ${datos.auxiliar_taquilla || 'No especificado'}</p>
+                        <p><strong>Fecha:</strong> ${datos.fecha_compra}</p>
+                        <p><strong>Tiquete:</strong> ${datos.numero_tiquete}</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 border border-gray-200">
+                        <h4 class="font-bold text-pink-600 mb-2">⭐ CALIFICACIONES</h4>
+                        <p><strong>1. Atención y cordialidad:</strong> ${datos.atenta_cordial}</p>
+                        <p><strong>2. Tiempo de espera:</strong> ${datos.tiempo_espera}</p>
+                        <p><strong>3. Alternativas ofrecidas:</strong> ${datos.alternativas_viaje}</p>
+                        <p><strong>4. Información clara:</strong> ${datos.informacion_politicas}</p>
+                        <p><strong>5. Proceso de pago:</strong> ${datos.proceso_pago}</p>
+                        <p><strong>6. Entrega de tiquete:</strong> ${datos.entrega_tiquete}</p>
+                        <p><strong>7. Resolución de dudas:</strong> ${datos.resolucion_dudas}</p>
+                        <p><strong>8. Presentación personal:</strong> ${datos.presentacion_personal}</p>
+                    </div>
+                    <div class="md:col-span-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
+                        <h4 class="font-bold text-indigo-600 mb-2">📊 RESUMEN FINAL</h4>
+                        <p><strong>9. Calificación General:</strong> ${datos.calificacion_general}</p>
+                        <p><strong>10. Recomendación:</strong> ${datos.recomendaria === 'Sí' ? '✅ Sí, recomendaría el servicio' : '❌ No recomendaría el servicio'}</p>
+                        ${datos.comentarios ? `<p><strong>11. Comentarios:</strong> "${datos.comentarios}"</p>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // ==================== RESETEAR FORMULARIO ====================
+        function resetearFormulario() {
+            document.getElementById('formEncuesta').reset();
+            document.getElementById('formEncuesta').classList.remove('hidden');
+            document.getElementById('resultado').classList.add('hidden');
+            
+            // Resetear auxiliares
+            document.getElementById('auxiliar_taquilla').disabled = true;
+            document.getElementById('auxiliar_taquilla').innerHTML = '<option value="">Primero seleccione una agencia</option>';
+            
+            // Resetear fecha automática
+            establecerFechaAutomatica();
+            
+            // Resetear estilos
+            document.querySelectorAll('.opcion-calificacion, .opcion-si-no').forEach(opcion => {
+                opcion.classList.remove('seleccionada');
+            });
+            document.querySelectorAll('.campo-error').forEach(campo => campo.classList.remove('campo-error'));
+            document.querySelectorAll('.grupo-radio-error').forEach(grupo => grupo.classList.remove('grupo-radio-error'));
+            
+            actualizarProgreso();
+        }
+
+        // ==================== INICIALIZACIÓN ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Establecer fecha automática
+            establecerFechaAutomatica();
+            
+            // Evento para agencia
+            document.getElementById('agencia').addEventListener('change', actualizarAuxiliares);
+            
+            // Eventos para opciones de calificación (incluyendo la pregunta 10)
+            document.querySelectorAll('.opcion-calificacion, .opcion-si-no').forEach(opcion => {
+                opcion.addEventListener('click', function() {
+                    const radio = this.querySelector('input[type="radio"]');
+                    const nombre = radio.name;
+                    document.querySelectorAll(`input[name="${nombre}"]`).forEach(r => {
+                        const elemento = r.closest('.opcion-calificacion, .opcion-si-no');
+                        if (elemento) elemento.classList.remove('seleccionada');
+                    });
+                    this.classList.add('seleccionada');
+                    actualizarProgreso();
+                    
+                    const grupoDiv = document.getElementById(`grupo-${nombre}`);
+                    if (grupoDiv) grupoDiv.classList.remove('grupo-radio-error');
+                });
+            });
+            
+            // Actualizar progreso en tiempo real
+            document.querySelectorAll('input, select, textarea').forEach(input => {
+                if (input.id !== 'fecha_compra') {
+                    input.addEventListener('input', actualizarProgreso);
+                    input.addEventListener('change', actualizarProgreso);
+                }
+            });
+            
+            // Envío del formulario
+            document.getElementById('formEncuesta').addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (validarFormularioCompleto()) {
+                    document.getElementById('confirmacionEnvio').classList.remove('hidden');
+                } else {
+                    alert('❌ Por favor complete todos los campos obligatorios correctamente.');
+                }
+            });
+            
+            // Modal de confirmación
+            document.getElementById('cancelarEnvio').addEventListener('click', function() {
+                document.getElementById('confirmacionEnvio').classList.add('hidden');
+            });
+            
+            document.getElementById('confirmarEnvio').addEventListener('click', async function() {
+                if (enviando) return;
+                enviando = true;
+                document.getElementById('confirmacionEnvio').classList.add('hidden');
+                
+                // Recolectar TODOS los datos del formulario
+                const formData = new FormData(document.getElementById('formEncuesta'));
+                
+                const datos = {
+                    // Información de compra
+                    agencia: formData.get('agencia'),
+                    auxiliar_taquilla: formData.get('auxiliar_taquilla') || '',
+                    fecha_compra: formData.get('fecha_compra'),
+                    numero_tiquete: formData.get('numero_tiquete'),
+                    // Pregunta 1
+                    atenta_cordial: formData.get('atenta_cordial'),
+                    // Pregunta 2
+                    tiempo_espera: formData.get('tiempo_espera'),
+                    // Pregunta 3
+                    alternativas_viaje: formData.get('alternativas_viaje'),
+                    // Pregunta 4
+                    informacion_politicas: formData.get('informacion_politicas'),
+                    // Pregunta 5
+                    proceso_pago: formData.get('proceso_pago'),
+                    // Pregunta 6
+                    entrega_tiquete: formData.get('entrega_tiquete'),
+                    // Pregunta 7
+                    resolucion_dudas: formData.get('resolucion_dudas'),
+                    // Pregunta 8
+                    presentacion_personal: formData.get('presentacion_personal'),
+                    // Pregunta 9
+                    calificacion_general: formData.get('calificacion_general'),
+                    // Pregunta 10
+                    recomendaria: formData.get('recomendaria'),
+                    // Pregunta 11
+                    comentarios: formData.get('comentarios') || '',
+                    // Metadatos
+                    timestamp: new Date().toISOString(),
+                    fecha_envio: new Date().toLocaleString('es-CO'),
+                    id_unico: Date.now().toString() + Math.random().toString(36).substr(2, 9)
+                };
+                
+                console.log('📤 Enviando datos completos:', datos);
+                
+                const exito = await enviarAGSheets(datos);
+                
+                if (exito) {
+                    mostrarResumen(datos);
+                    document.getElementById('formEncuesta').classList.add('hidden');
+                    document.getElementById('resultado').classList.remove('hidden');
+                    document.getElementById('estadoEnvio').innerHTML = `
+                        <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+                            <p class="text-green-700"><i class="fas fa-check-circle mr-2"></i>✅ ¡Evaluación guardada exitosamente en Google Sheets!</p>
+                            <p class="text-green-600 text-sm mt-2"><i class="fas fa-file-excel mr-1"></i> Todos los campos han sido registrados correctamente.</p>
+                        </div>
+                    `;
+                } else {
+                    guardarLocalmente(datos);
+                    mostrarResumen(datos);
+                    document.getElementById('formEncuesta').classList.add('hidden');
+                    document.getElementById('resultado').classList.remove('hidden');
+                    document.getElementById('estadoEnvio').innerHTML = `
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                            <p class="text-yellow-700"><i class="fas fa-database mr-2"></i>⚠️ Datos guardados localmente (sin conexión a internet)</p>
+                            <p class="text-yellow-600 text-sm mt-2">Se enviarán automáticamente cuando se restablezca la conexión.</p>
+                        </div>
+                    `;
+                }
+                
+                enviando = false;
+            });
+            
+            actualizarProgreso();
+        });
+    </script>
+</body>
+</html>
